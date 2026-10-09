@@ -1,5 +1,7 @@
 # Minirubik on RV32I
 
+[![hackmd-github-sync-badge](https://hackmd.io/QStncDstQoCA9JmJl90ZRg/badge)](https://hackmd.io/QStncDstQoCA9JmJl90ZRg)
+
 ## Stage 1
 
 ## 1.1 Experimental Environment
@@ -213,7 +215,6 @@ The benchmark rate uses Ripes' wall-clock **model execution time**, not the GUI 
 For this benchmark, the ISS simulation rate is about 17.14 times the five-stage rate. This compares simulator throughput, not the clock frequency of a physical processor.
 
 **TODO — student-written transition to Stage 2:** Explain how the baseline storage and simulation-work counts motivate the chosen target design.
-
 ## Stage 2: Representation and Optimal Search
 
 ### 2.1 Objective and Constraints
@@ -226,7 +227,7 @@ Return a shortest HTM solution for every valid input with:
 - Host-generated transition and heuristic tables, with the actual search running on the target.
 - At most 50,000,000 retired instructions for every distance-11 input on the pinned `RV32_ISS` build, with rendering excluded.
 
-The assignment also requires an arbitrary input supplied as a 14-character string inlined at assembly time. The currently tested assembly starts from `START_PERM` and `START_ORIENT` constants. **That input-interface requirement remains to be addressed.**
+The assembly now accepts a 14-character state string inlined at assembly time as `input_state: .asciz "PPPPPPPOOOOOOO"`. It validates the string and computes both rank coordinates before starting the search. The new target measurements below include this input interface.
 
 ### 2.2 State Representation and Four Tables
 
@@ -348,7 +349,17 @@ Each entry is addressed as `base + face_offset + 2 * coordinate`. The measured s
 
 **TODO — student-written RV32I explanation:** Identify the shifts, additions, comparisons, and load/store widths used in the important fragments. Explain the cost of pseudo-instructions after assembly and the register-lifetime choices.
 
-**Open input requirement:** The current builder accepts rank coordinates, not an inlined 14-character state string. The tested core handles many inputs, but this is not evidence that the specified input interface has been implemented.
+The inline input parser performs the following steps:
+
+1. Read seven permutation characters in the range `'1'` to `'7'`, subtract ASCII `'1'` (49), and reject repeated cubie identifiers using a bit mask.
+2. Read seven orientation characters in the range `'1'` to `'3'`, subtract 49, and require their sum to be divisible by three.
+3. Require a terminating zero byte immediately after the fourteenth character.
+4. Compute the permutation rank using Lehmer-code counts. The fold is `p = p * (7 - i) + smaller`; repeated additions implement its small multiplications in RV32I.
+5. Encode the first six orientations as a base-three number using shifts and additions, then store the two ranks in `path_perm[0]` and `path_orient[0]`.
+
+The validated string supplies the actual search root. Legacy `START_PERM` and `START_ORIENT` definitions are retained for build-script compatibility; the solver no longer uses them to select its input. For another input, change `input_state`, regenerate `solver-gui.s` or `solver-cli.s`, and reload the generated file. The target test runner replaces this string with each CSV case's `state` field.
+
+An invalid input terminates with `a0 = -1` and `a2 = 1`. A valid input continues to search; at normal completion, `a0` is the solution length and `a2 = 0` indicates successful replay. The target results below cover the three required valid inputs on both models and every distance-11 input on ISS; they are not a claim of exhaustive malformed-string testing.
 
 ### 4.2 Assembly Refinement
 
@@ -365,13 +376,13 @@ The following development runs used the formerly worst input `54721631111111`, r
 | Further control-array base changes | 50,699,564 |
 | Restored source, corrected heuristic store, and cached face-offset bases | **48,353,660** |
 
-Historical linked `.text` sizes were not supplied for these intermediate measurements. The final production CLI `.text` is **1048 bytes**.
+Historical linked `.text` sizes were not supplied for these intermediate measurements. The audited production CLI `.text` was **1048 bytes before the inline-input revision** and is **1432 bytes after it**. The development table above preserves its original measurements.
 
 **TODO — student-written interpretation:** Explain the important before/after instruction sequences. Attach source revisions and retained logs, and report any historical code sizes that were actually recorded. Do not invent missing sizes.
 
 ### 4.3 Complete Distance-11 ISS Gate
 
-The final renderer-free build completed all **2,644 distance-11 states**:
+The new renderer-free build, including the inline-input parser, completed all **2,644 distance-11 states**:
 
 | Result | Value |
 |---|---:|
@@ -380,16 +391,16 @@ The final renderer-free build completed all **2,644 distance-11 states**:
 | Length failures | 0 |
 | Replay failures | 0 |
 | Budget failures | 0 |
-| Maximum retired instructions | **48,353,660** |
-| Worst input | `54721631111111` |
-| New parallel-batch wall time | **2594.337 s** |
+| Maximum retired instructions | **48,354,248** |
+| Input attaining the new maximum | Not retrieved from the new CSV summary |
+| New parallel-batch wall time | **506.962 s** |
 | Full distance-11 ISS gate | **PASS** |
 
-The batch time excludes the previously completed seed case and includes host process overhead. It is not Ripes' model execution time. Parallel host execution shortened collection time; it did not change each case's retired-instruction count.
+The batch time excludes the three previously completed seed cases and includes host process overhead. It is not Ripes' model execution time. Parallel host execution shortened collection time; it did not change each case's retired-instruction count. The maximum is **1,645,752 instructions below the limit**. The summary does not identify its input, so the earlier worst input is not assumed to remain the worst.
 
-Evidence is retained in `results-final-iss-seed` and `results-final-iss-parallel`, including the merged CSV, per-case reports, and source/tool manifests.
+New evidence is retained in `results-inline-depth11-seed` and `results-inline-depth11-parallel`, including the merged CSV, per-case reports, and source/tool manifests. Before adding the input parser, the earlier complete run in `results-final-iss-seed` and `results-final-iss-parallel` also passed, with a maximum of 48,353,660 and a new-batch wall time of 2594.337 seconds. Those are historical results for the earlier revision.
 
-**Required separate reference count:** The final production `RV32_ISS` report for `21345671111111` recorded **17,683,217 retired instructions**, a solution length of **11**, and replay status **0**. This row was retrieved from the retained full-run CSV. The GCC-comparison count below belongs to a different harness.
+**Required separate reference count:** The new production `RV32_ISS` report for `21345671111111` recorded **17,683,806 retired instructions**, a solution length of **11**, and replay status **0**. It is recorded in `results-inline-three-iss`. The earlier revision recorded 17,683,217 in its full-run CSV. The GCC-comparison count below belongs to a different harness.
 
 ### 4.4 Replay, Required Vector, and Pipeline Tests
 
@@ -399,15 +410,15 @@ The final production build was tested with a solved cube, a short scramble, and 
 
 | Input | Case | Length | Replay status, both models | RV32_ISS instructions | RV32_5S instructions |
 |---|---|---:|---:|---:|---:|
-| `12345671111111` | Solved | 0 | 0 | 103 | 102 |
-| `12356741112323` | Short scramble | 1 | 0 | 539 | 538 |
-| `21345671111111` | Distance 11 | 11 | 0 | 17,683,217 | 17,683,216 |
+| `12345671111111` | Solved | 0 | 0 | 692 | 691 |
+| `12356741112323` | Short scramble | 1 | 0 | 1134 | 1133 |
+| `21345671111111` | Distance 11 | 11 | 0 | 17,683,806 | 17,683,805 |
 
-Each model completed 3/3 cases with zero execution/report errors, length failures, and replay failures. The distance-11 vector also passed the ISS instruction budget. Average process wall times were **0.436 seconds on RV32_ISS** and **17.727 seconds on RV32_5S**. These are process times, including assembly and reporting.
+Each model completed 3/3 cases with zero execution/report errors, length failures, and replay failures. The distance-11 vector also passed the ISS instruction budget. Average process wall times were **0.436 seconds on RV32_ISS** and **17.167 seconds on RV32_5S**. These are process times, including assembly and reporting.
 
-Evidence directories: `results-required-three-iss` and `results-required-three-5s`. The `All 2644 ... False` fields in these three-case summaries describe their limited scope; the complete distance-11 result is recorded separately in Section 4.3.
+Evidence directories: `results-inline-three-iss` and `results-inline-three-5s`. These measurements include the inline-input parser. The earlier three-case records in `results-required-three-iss` and `results-required-three-5s` belong to the previous input interface. The `All 2644 ... False` fields in these three-case summaries describe their limited scope; the complete distance-11 result is recorded separately in Section 4.3.
 
-An additional earlier final-build five-stage test of `54321671111111` returned length 1, replay status 0, and 304 retired instructions. That record is retained in `results-final-smoke-5s-newpc-v2`.
+An additional earlier, pre-inline-input five-stage test of `54321671111111` returned length 1, replay status 0, and 304 retired instructions. That record is retained in `results-final-smoke-5s-newpc-v2`.
 
 The required vector returned an optimal 11-move path:
 
@@ -415,7 +426,7 @@ The required vector returned an optimal 11-move path:
 R B' D2 R' B R' B' R D2 R B
 ~~~
 
-T5 is supported for the returned paths actually tested. T6 passed for the required vector. The prescribed solved/short/distance-11 set now reproduces on both models. This completes the tested-case portion of T7; the inlined 14-character input interface and reproduction instructions for arbitrary grader inputs remain outstanding.
+T5 is supported for every distance-11 path tested on ISS and for the required cases on both models. T6 passed for the required vector. The prescribed solved/short/distance-11 set reproduces on both models using the actual inline-input interface. To reproduce another grader input, change the fourteen characters at `input_state` and regenerate the selected build. The tests do not establish universal pipeline correctness by enumerating the whole domain on a pipeline model.
 
 ### 4.5 GCC RV32I Comparison
 
@@ -432,7 +443,7 @@ All selected comparison cases passed length and replay checks. For the 11-move c
 
 The C function was taken from the latest uploaded C search. The manual version additionally uses early child pruning and register-held bases; the comparison includes those implementation differences. It must not be described as a compiler-only comparison.
 
-This harness differs from the final submission build. Its manual `.text = 960` is not the final production `.text = 1048`. The comparison harness reserves a 4-KiB stack; that reservation is not part of the final static-data audit.
+This comparison was measured before the inline-input revision and uses rank coordinates rather than the new parser. Its manual `.text = 960` is not the new production CLI `.text = 1432`. The comparison has not been rerun with the parser; the values above remain the original core-search comparison. The comparison harness reserves a 4-KiB stack; that reservation is not part of the final static-data audit.
 
 Evidence directory: `gcc-compare/results-v1`.
 
@@ -449,23 +460,23 @@ The host auditor compared the actual assembly table data against cubie-model tra
 | `perm_dist` | 5,040 | 0 | — | 0 | 7 | 0 |
 | `orient_dist` | 729 | 0 | — | 0 | 6 | 0 |
 
-Search metadata failures were zero. Host H2 audit time was **0.102 seconds**. This additional audit did not rerun exhaustive H1 or H3.
+Search metadata failures were zero. Host H2 audit time was **0.107 seconds**. This additional audit did not rerun exhaustive H1 or H3.
 
 | Storage measurement | Bytes |
 |---|---:|
 | Four-table payload | 40,383 |
-| Final CLI `.data` | 40,587 |
-| Final GUI `.data` | 40,766 |
+| Final CLI `.data` | 40,616 |
+| Final GUI `.data` | 40,795 |
 | Final `.bss` and `.rodata` in the audited layout | 0 |
-| Final production CLI linked `.text` | 1048 |
-| Final CLI `.text + .data` | 41,635 |
+| Final production CLI linked `.text` | 1432 |
+| Final CLI `.text + .data` | 42,048 |
 | Static-data limit | 131,072 |
 
 The final CLI and GUI static-data layouts both pass the 128-KiB budget. The four-table payload is not the full data total. The extra `.riscv.attributes` bytes in data-only objects are metadata, not allocated static data.
 
 The GUI data-only object has `.text = 0` because it contains data only; it is not a measurement of GUI code size.
 
-Evidence directory: `final-audit/results-20261008-215036`.
+Evidence directory: `final-audit/results-inline-input-v3`. The earlier audit in `final-audit/results-20261008-215036` recorded CLI data 40,587, GUI data 40,766, and CLI text 1048 bytes. The new data totals are 29 bytes larger; the four-table payload remains unchanged.
 
 ### 4.7 LED Matrix and Build Selection
 
@@ -546,6 +557,8 @@ The following screenshots record the initial state and each of the eleven return
 
 ### 4.8 Pipeline Walkthrough
 
+The screenshots below were captured before the inline-input revision. They document that captured build; adding the parser changes instruction addresses, so the displayed PCs are not asserted for the current build.
+
 The captured `RV32_5S` trace follows `lhu t1,0(t0)` at instruction address **0x1c0**.
 
 | Stage | Recorded cycle |
@@ -609,13 +622,13 @@ The Windows measurement outputs reported here were supplied from my local runs. 
 
 The assignment explicitly reserves representation/search design, admissibility reasoning, reported measurements, optimization reasoning, RV32I assembly, and report analysis for the student. Disclosure does not establish compliance with that independent-work requirement. This draft records the assistance actually received.
 
-## Items to Complete Before Phase 1 Submission
+## Remaining Report and Submission Checks
 
 - [ ] Confirm machine/compiler attribution and the memory unit.
 - [ ] Complete the student-written mathematical, design, optimization, comparison, LED, and pipeline analysis.
-- [ ] Address the inlined 14-character assembly input interface.
+- [x] Implement and test the inlined 14-character assembly input interface on the target.
 - [x] Record solved/short/distance-11 production tests on both required processor models: 3/3 on each, with zero length or replay failures.
-- [x] Record the reference vector's production ISS instruction count from the final CSV: 17,683,217.
+- [x] Record the new reference vector's production ISS instruction count: 17,683,806, from the required-case report.
 - [x] Attach the LED animation and load/store pipeline screenshots.
 - [ ] Add revision-pinned source/test-evidence links.
 - [ ] Check the final source against the tested manifests; distinguish earlier evidence from any new revision.

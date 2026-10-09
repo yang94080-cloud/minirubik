@@ -52,17 +52,24 @@ if (Test-Path -LiteralPath $csvPath) {
 }
 & $buildPath -Mode cli
 $template = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'solver-cli.s') -Raw -Encoding UTF8
-$permPattern = [regex]::new('(?m)^\s*\.equ\s+START_PERM\s*,[^\r\n]*')
-$orientPattern = [regex]::new('(?m)^\s*\.equ\s+START_ORIENT\s*,[^\r\n]*')
-if ($permPattern.Matches($template).Count -ne 1 -or
-    $orientPattern.Matches($template).Count -ne 1) { throw 'Invalid input constants.' }
+$statePattern = [regex]::new(
+    '(?m)(^[ \t]*input_state:[ \t]*\r?\n[ \t]*\.asciz[ \t]+)"[^"\r\n]*"'
+)
+
+if ($statePattern.Matches($template).Count -ne 1) {
+    throw 'Expected exactly one input_state string.'
+}
 $selected = if ($Limit -gt 0) { @($cases | Select-Object -First $Limit) } else { $cases }
 $encoding = [System.Text.UTF8Encoding]::new($false)
 $casePath = Join-Path $OutDir '_case.s'
 foreach ($case in $selected) {
     if ($done.ContainsKey($case.rank)) { continue }
-    $text = $permPattern.Replace($template, ".equ START_PERM, $($case.p)", 1)
-    $text = $orientPattern.Replace($text, ".equ START_ORIENT, $($case.o)", 1)
+   if ([string]$case.state -notmatch '^[1-7]{7}[1-3]{7}$') {
+    throw "Invalid input string: $($case.state)"
+}
+
+$replacement = '${1}"' + $case.state + '"'
+$text = $statePattern.Replace($template, $replacement, 1)
     [System.IO.File]::WriteAllText($casePath, $text, $encoding)
     $prefix = Join-Path $OutDir "case-$($case.rank)"
     $reportPath = "$prefix-report.txt"

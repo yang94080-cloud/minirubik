@@ -23120,9 +23120,6 @@ path_move:
     face_first_move:
     .byte 0, 3, 6
     
-    
-
-
 
 render_perm:
     .zero 7
@@ -23159,6 +23156,7 @@ render_corner_colors:
     .byte 5, 3, 4    # 角 5：D R B
     .byte 5, 4, 1    # 角 6：D B L
     .byte 0, 1, 4    # 角 7：U L B
+
 
 
 render_facelets:
@@ -23210,20 +23208,162 @@ move_text:
     .byte 68, 50, 0, 0    # D2
     .byte 68, 39, 0, 0    # D'
 
+input_state:
+    .asciz "21345671111111"
+    
+    input_perm:
+    .zero 7
+    
+    input_orient:
+    .zero 7
 .text
 main:
+    
+    la   t0, input_state
+    la   t1, input_perm
+    li   t2, 7
+    la   t0, input_state
+    la   t1, input_perm
+    li   t2, 7
+    li   t5, 0              # 已出現編號的 bitmask
+parse_perm_loop:
+    lbu  t3, 0(t0)
+    addi t3, t3, -49
+
+    li   t4, 7
+    bgeu t3, t4, input_invalid
+
+    # 產生目前編號對應的 bit
+    li   t4, 1
+    sll  t4, t4, t3
+
+    # 該 bit 已經是 1，表示編號重複
+    and  t6, t5, t4
+    bne  t6, x0, input_invalid
+
+    # 記錄這個編號已出現
+    or   t5, t5, t4
+    
+    sb   t3, 0(t1)
+
+    addi t0, t0, 1
+    addi t1, t1, 1
+    addi t2, t2, -1
+    bnez t2, parse_perm_loop
+    
+      la   t1, input_orient
+    li   t2, 7
+     li   t5, 0              # 方向總和
+
+parse_orient_loop:
+    lbu  t3, 0(t0)
+    addi t3, t3, -49
+
+    li   t4, 3
+    bgeu t3, t4, input_invalid
+    add  t5, t5, t3         # 累加轉換後的方向值
+    sb   t3, 0(t1)
+    addi t0, t0, 1
+    addi t1, t1, 1
+    addi t2, t2, -1
+    bnez t2, parse_orient_loop
+        # 十四個字元之後必須是字串結尾
+    lbu  t3, 0(t0)
+    bne  t3, x0, input_invalid
+     # 用重複減法計算方向總和除以 3 的餘數
+    li   t4, 3
+
+parse_twist_check:
+    bltu t5, t4, parse_twist_done
+    addi t5, t5, -3
+    j    parse_twist_check
+
+parse_twist_done:
+    bne  t5, x0, input_invalid
+
+    #計算 permutation rank
+    la  t0, input_perm
+    li  t2, 0                   # 目前位置 i
+    li  t5, 0                   # 累積 rank
+
+rank_perm_outer:
+    add t1, t0, t2
+    lbu t3, 0(t1)               # input_perm[i]
+
+    addi t4, t2, 1              # 從右邊第一個位置開始
+    li   t6, 0                  # 右邊較小編號的數量
+
+rank_perm_count:
+    li   a3, 7
+    bgeu t4, a3, rank_perm_accumulate
+
+    add  a3, t0, t4
+    lbu  a4, 0(a3)
+    sltu a4, a4, t3             # 右邊編號較小，得到 1
+    add  t6, t6, a4
+
+    addi t4, t4, 1
+    j    rank_perm_count
+
+rank_perm_accumulate:
+    # rank = rank * (7 - i) + smaller
+    # 用重複加法代替乘法
+    li  a5, 7
+    sub a5, a5, t2
+    li  a6, 0
+
+rank_perm_multiply:
+    add  a6, a6, t5
+    addi a5, a5, -1
+    bne  a5, x0, rank_perm_multiply
+
+    add  t5, a6, t6
+    addi t2, t2, 1
+
+    li   a3, 7
+    bltu t2, a3, rank_perm_outer
+
+rank_perm_done:
+    nop                   
+        # t5 保留 permutation rank
+    la  t0, input_orient
+    li  t2, 6
+    li  t6, 0                   # orientation rank
+
+rank_orient_loop:
+    lbu  t3, 0(t0)
+
+    slli t4, t6, 1              # 2 * o
+    add  t6, t6, t4             # 3 * o
+    add  t6, t6, t3             # 加入目前方向
+
+    addi t0, t0, 1
+    addi t2, t2, -1
+    bne  t2, x0, rank_orient_loop
+
+rank_orient_done:
+    nop                         # 可在此設斷點
+
+    # 將解析得到的 rank 存成搜尋起點
+    la  t0, path_perm
+    sh  t5, 0(t0)
+
+    la  t0, path_orient
+    sh  t6, 0(t0)
+
+
+la t0,input_state
+lbu t1,0(t0)
+addi t1, t1, -49
+la t2,input_perm
+sb t1,0(t2)
+nop
+
   
     jal ra, clear_led
 
 
-    li t1, START_PERM
-    li t2, START_ORIENT
 
-    la t0, path_perm
-    sh t1, 0(t0)
-
-    la t0, path_orient
-    sh t2, 0(t0)
     la t0, path_perm
     lhu a0, 0(t0)
     jal ra, decode_render_perm
@@ -23914,6 +24054,13 @@ animate_failed:
     li a2, 1
     jalr x0, s11, 0
 
+
+input_invalid:
+    li a0, -1
+    li a2, 1
+    li a7, 10
+    ecall
+    j target_program_end
 target_program_end:
 
     nop
