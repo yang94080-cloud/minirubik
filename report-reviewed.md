@@ -2,6 +2,7 @@
 
 [![hackmd-github-sync-badge](https://hackmd.io/QStncDstQoCA9JmJl90ZRg/badge)](https://hackmd.io/QStncDstQoCA9JmJl90ZRg)
 
+
 ## Stage 1
 
 ## 1.1 Experimental Environment
@@ -215,6 +216,7 @@ The benchmark rate uses Ripes' wall-clock **model execution time**, not the GUI 
 For this benchmark, the ISS simulation rate is about 17.14 times the five-stage rate. This compares simulator throughput, not the clock frequency of a physical processor.
 
 **TODO — student-written transition to Stage 2:** Explain how the baseline storage and simulation-work counts motivate the chosen target design.
+
 ## Stage 2: Representation and Optimal Search
 
 ### 2.1 Objective and Constraints
@@ -509,51 +511,51 @@ The following screenshots record the initial state and each of the eleven return
 
 **Step 0 — initial scrambled cube, before any solution move.**
 
-![LED cube after 0 solution moves](report-images/led-step-00.png)
+![LED cube after 0 solution moves](https://raw.githubusercontent.com/yang94080-cloud/minirubik/main/report-images/led-step-00.png)
 
 **Step 1 — after `R`.**
 
-![LED cube after 1 solution moves](report-images/led-step-01.png)
+![LED cube after 1 solution moves](https://raw.githubusercontent.com/yang94080-cloud/minirubik/main/report-images/led-step-01.png)
 
 **Step 2 — after `B'`.**
 
-![LED cube after 2 solution moves](report-images/led-step-02.png)
+![LED cube after 2 solution moves](https://raw.githubusercontent.com/yang94080-cloud/minirubik/main/report-images/led-step-02.png)
 
 **Step 3 — after `D2`.**
 
-![LED cube after 3 solution moves](report-images/led-step-03.png)
+![LED cube after 3 solution moves](https://raw.githubusercontent.com/yang94080-cloud/minirubik/main/report-images/led-step-03.png)
 
 **Step 4 — after `R'`.**
 
-![LED cube after 4 solution moves](report-images/led-step-04.png)
+![LED cube after 4 solution moves](https://raw.githubusercontent.com/yang94080-cloud/minirubik/main/report-images/led-step-04.png)
 
 **Step 5 — after `B`.**
 
-![LED cube after 5 solution moves](report-images/led-step-05.png)
+![LED cube after 5 solution moves](https://raw.githubusercontent.com/yang94080-cloud/minirubik/main/report-images/led-step-05.png)
 
 **Step 6 — after `R'`.**
 
-![LED cube after 6 solution moves](report-images/led-step-06.png)
+![LED cube after 6 solution moves](https://raw.githubusercontent.com/yang94080-cloud/minirubik/main/report-images/led-step-06.png)
 
 **Step 7 — after `B'`.**
 
-![LED cube after 7 solution moves](report-images/led-step-07.png)
+![LED cube after 7 solution moves](https://raw.githubusercontent.com/yang94080-cloud/minirubik/main/report-images/led-step-07.png)
 
 **Step 8 — after `R`.**
 
-![LED cube after 8 solution moves](report-images/led-step-08.png)
+![LED cube after 8 solution moves](https://raw.githubusercontent.com/yang94080-cloud/minirubik/main/report-images/led-step-08.png)
 
 **Step 9 — after `D2`.**
 
-![LED cube after 9 solution moves](report-images/led-step-09.png)
+![LED cube after 9 solution moves](https://raw.githubusercontent.com/yang94080-cloud/minirubik/main/report-images/led-step-09.png)
 
 **Step 10 — after `R`.**
 
-![LED cube after 10 solution moves](report-images/led-step-10.png)
+![LED cube after 10 solution moves](https://raw.githubusercontent.com/yang94080-cloud/minirubik/main/report-images/led-step-10.png)
 
 **Step 11 — after `B`; all six faces are solved.**
 
-![LED cube after 11 solution moves](report-images/led-step-11.png)
+![LED cube after 11 solution moves](https://raw.githubusercontent.com/yang94080-cloud/minirubik/main/report-images/led-step-11.png)
 
 ### 4.8 Pipeline Walkthrough
 
@@ -578,37 +580,37 @@ The screenshots below use the newly supplied `EX(2).png` for EX and `write succe
 
 **IF, cycle 109.** The instruction at `0x1c0` is in instruction fetch.
 
-![Load instruction IF, cycle 109](report-images/pipeline-if.png)
+![Load instruction IF, cycle 109](https://raw.githubusercontent.com/yang94080-cloud/minirubik/main/report-images/pipeline-if.png)
 
 **ID, cycle 110.** The same instruction is in decode.
 
-![Load instruction ID, cycle 110](report-images/pipeline-id.png)
+![Load instruction ID, cycle 110](https://raw.githubusercontent.com/yang94080-cloud/minirubik/main/report-images/pipeline-id.png)
 
 **EX, cycle 111.** The instruction is in execute, where the effective address is calculated.
 
-![Load instruction EX, cycle 111](report-images/pipeline-ex.png)
+![Load instruction EX, cycle 111](https://raw.githubusercontent.com/yang94080-cloud/minirubik/main/report-images/pipeline-ex.png)
 
 **MEM, cycle 112.** Memory is read at `0x10000012`; the read value is `0x000004cb`, while `t1/x6` still contains `0x00000009`.
 
-![Load instruction MEM, cycle 112](report-images/pipeline-mem.png)
+![Load instruction MEM, cycle 112](https://raw.githubusercontent.com/yang94080-cloud/minirubik/main/report-images/pipeline-mem.png)
 
 **WB, cycle 113.** The load is in writeback. This pre-edge snapshot still shows `t1/x6 = 0x00000009`.
 
-![Load instruction WB, cycle 113](report-images/pipeline-wb.png)
+![Load instruction WB, cycle 113](https://raw.githubusercontent.com/yang94080-cloud/minirubik/main/report-images/pipeline-wb.png)
 
 **After WB, cycle 114.** After the next clock edge, `t1/x6` contains `0x000004cb`.
 
-![Load instruction After WB, cycle 114](report-images/pipeline-after-wb.png)
+![Load instruction After WB, cycle 114](https://raw.githubusercontent.com/yang94080-cloud/minirubik/main/report-images/pipeline-after-wb.png)
 
 #### Store Instruction and Memory Update
 
 The store `sh t1,0(t0)` at instruction address **0x1dc** was captured in MEM at cycle 119, with destination `0x10009df0`, data input `0x000004cb`, and memory write enable asserted.
 
-![Store in MEM, cycle 119: address, input data, and write enable](report-images/store-mem.png)
+![Store in MEM, cycle 119: address, input data, and write enable](https://raw.githubusercontent.com/yang94080-cloud/minirubik/main/report-images/store-mem.png)
 
 At cycle 120, the store is in WB and the memory view at `0x10009df0` contains bytes **`cb 04`**, matching the stored halfword `0x04cb` in little-endian order. The data-memory signals at this later cycle belong to the next instruction.
 
-![Memory after the store: bytes cb 04 at 0x10009df0](report-images/store-after-mem.png)
+![Memory after the store: bytes cb 04 at 0x10009df0](https://raw.githubusercontent.com/yang94080-cloud/minirubik/main/report-images/store-after-mem.png)
 
 **TODO — student-written instruction analysis:** Explain IF/ID/EX/MEM/WB for the selected load and store, the register-write-enable and writeback-multiplexer signals, and why the memory bytes are correct. Use the attached screenshots to support the explanation. Distinguish an instruction address from a data address, and distinguish a stage snapshot from the clock edge that commits its result.
 
@@ -622,21 +624,6 @@ The Windows measurement outputs reported here were supplied from my local runs. 
 
 The assignment explicitly reserves representation/search design, admissibility reasoning, reported measurements, optimization reasoning, RV32I assembly, and report analysis for the student. Disclosure does not establish compliance with that independent-work requirement. This draft records the assistance actually received.
 
-## Remaining Report and Submission Checks
-
-- [ ] Confirm machine/compiler attribution and the memory unit.
-- [ ] Complete the student-written mathematical, design, optimization, comparison, LED, and pipeline analysis.
-- [x] Implement and test the inlined 14-character assembly input interface on the target.
-- [x] Record solved/short/distance-11 production tests on both required processor models: 3/3 on each, with zero length or replay failures.
-- [x] Record the new reference vector's production ISS instruction count: 17,683,806, from the required-case report.
-- [x] Attach the LED animation and load/store pipeline screenshots.
-- [ ] Add revision-pinned source/test-evidence links.
-- [ ] Check the final source against the tested manifests; distinguish earlier evidence from any new revision.
-- [ ] Push the submission source and evidence, tag the submission commit, and record the tag.
-- [ ] Publish HackMD, enable editing by signed-in users, and record the report revision URL.
-- [ ] Submit the fork and report through the assignment form and retain the acceptance email.
-
-Phase 2 is a separate interview due on October 18. Completing the tested quantitative gates does not submit Phase 1 or complete Phase 2.
 
 ## References
 
