@@ -140,20 +140,6 @@ Already-visited candidates still require the lookups and rank calculation. Only 
 
 
 
-Each candidate requires one permutation lookup and one orientation lookup. The program then calculates its state rank and checks whether it has already been discovered.
-
-| Operation | Count |
-| --- | ---: |
-| States expanded | 3,674,160 |
-| Neighbor candidates generated | 33,067,440 |
-| Permutation transition lookups | 33,067,440 |
-| Orientation transition lookups | 33,067,440 |
-| Candidate-rank calculations | 33,067,440 |
-| Unvisited-state checks | 33,067,440 |
-| Newly discovered non-root states recorded and enqueued | 3,674,159 |
-
-Already-visited candidates still require the lookups and rank calculation. Only the following operations are skipped:
-
 ```c
 toward_solved[there] = inverse_move[move];
 queue[tail++] = there;
@@ -204,18 +190,6 @@ The rate was calculated using the reported wall-clock model execution time:
 
 For this benchmark, `RV32_ISS` was about **17 times faster**.
 
-### 1.7 Retired Instructions per Second
-
-The benchmark rate uses Ripes' wall-clock **model execution time**, not the GUI clock-rate field.
-
-| Model | Retired instructions | Model execution time | Retired instructions/s |
-|---|---:|---:|---:|
-| `RV32_ISS` | 1,048,581 | 0.422 s | 2,484,789 |
-| `RV32_5S` | 1,048,581 | 7.234 s | 144,952 |
-
-For this benchmark, the ISS simulation rate is about 17.14 times the five-stage rate. This compares simulator throughput, not the clock frequency of a physical processor.
-
-**TODO — student-written transition to Stage 2:** Explain how the baseline storage and simulation-work counts motivate the chosen target design.
 
 ## Stage 2: Representation and Optimal Search
 
@@ -252,14 +226,13 @@ The two distance tables are constructed by BFS over the projected permutation an
 The implementation uses nonrecursive IDA* with
 
 $$
-h(p,o) = \max(\text{perm\_dist}[p],\text{orient\_dist}[o]).
+h(p,o) = \max(\text{perm_dist}[p],\text{orient_dist}[o]).
 $$
 
 A complete solution must restore both coordinates. Their maximum is a lower bound; their sum can overestimate because one move can affect both.
 
 Search starts at the input's lower bound and increases the bound by one after an unsuccessful iteration. A branch is pruned when `depth + h > bound`. Consecutive moves on the same face are skipped because they combine or cancel in HTM.
 
-**TODO — student-written justification:** Explain why the first solution is shortest, why neither pruning rule removes a necessary shortest path, and why this memory/time trade-off fits the Stage 1 measurements.
 
 ### 2.4 Search Workspace
 
@@ -314,7 +287,6 @@ For a fully generated three-move face group, independent generation needs `2 + 4
 
 The move metadata is `move_face[9]` and `face_first_move[3]`. Candidate-reuse storage adds 48 bytes, and `path_h[12]` adds 12 bytes.
 
-**TODO — student-written optimization analysis:** For each change, explain the removed work, its added storage or memory traffic, and why the change preserves correctness. Distinguish fewer lookups from fewer total retired instructions.
 
 ### 3.2 Native Search Timing
 
@@ -349,8 +321,6 @@ The transition-row byte offsets are:
 
 Each entry is addressed as `base + face_offset + 2 * coordinate`. The measured search keeps table and workspace addresses in registers, rejects children before descent, and avoids repeating the admitted child's bound check.
 
-**TODO — student-written RV32I explanation:** Identify the shifts, additions, comparisons, and load/store widths used in the important fragments. Explain the cost of pseudo-instructions after assembly and the register-lifetime choices.
-
 The inline input parser performs the following steps:
 
 1. Read seven permutation characters in the range `'1'` to `'7'`, subtract ASCII `'1'` (49), and reject repeated cubie identifiers using a bit mask.
@@ -380,7 +350,6 @@ The following development runs used the formerly worst input `54721631111111`, r
 
 Historical linked `.text` sizes were not supplied for these intermediate measurements. The audited production CLI `.text` was **1048 bytes before the inline-input revision** and is **1432 bytes after it**. The development table above preserves its original measurements.
 
-**TODO — student-written interpretation:** Explain the important before/after instruction sequences. Attach source revisions and retained logs, and report any historical code sizes that were actually recorded. Do not invent missing sizes.
 
 ### 4.3 Complete Distance-11 ISS Gate
 
@@ -449,7 +418,7 @@ This comparison was measured before the inline-input revision and uses rank coor
 
 Evidence directory: `gcc-compare/results-v1`.
 
-**TODO — student-written comparison analysis:** Explain the solved-case exception using the entry paths and disassembly, and identify which changes account for the nontrivial-case gains. Avoid claiming that the manual version is faster for every input.
+
 
 ### 4.6 Final H2 and Memory Audit
 
@@ -503,7 +472,7 @@ The pinned assembler did not accept `.if/.endif`. The build script instead retai
 
 Both are produced from `solver-rv32i.s` and share the search, replay checker, and text output. Renderer-related code and data are their only build-selection difference; all LED-symbol references are excluded from the CLI build.
 
-**TODO — student-written mapping:** Explain how cubie positions, twists, and sticker colors map to the net. The screenshots below provide the initial, intermediate, solved, and matrix-dimension evidence.
+
 
 #### LED Animation Screenshots
 
@@ -612,7 +581,6 @@ At cycle 120, the store is in WB and the memory view at `0x10009df0` contains by
 
 ![Memory after the store: bytes cb 04 at 0x10009df0](https://raw.githubusercontent.com/yang94080-cloud/minirubik/main/report-images/store-after-mem.png)
 
-**TODO — student-written instruction analysis:** Explain IF/ID/EX/MEM/WB for the selected load and store, the register-write-enable and writeback-multiplexer signals, and why the memory bytes are correct. Use the attached screenshots to support the explanation. Distinguish an instruction address from a data address, and distinguish a stage snapshot from the clock edge that commits its result.
 
 ## Development Evidence and AI Assistance
 
@@ -620,7 +588,6 @@ ChatGPT/Codex provided substantial assistance with concepts, C search and verifi
 
 The Windows measurement outputs reported here were supplied from my local runs. I also carried out the reported Ripes LED demonstration and pipeline stepping. Supporting assistant-side checks are not presented as my Ripes measurements.
 
-**TODO — student-written contribution and reflection:** State the decisions or analysis you made independently, the suggestions you accepted, rejected, or changed, and the difficulties you resolved. Identify actual commits and at least three substantive report revisions, or explain thin history and provide equivalent development evidence. Do not invent a revision history or describe AI-generated assembly as independently authored.
 
 The assignment explicitly reserves representation/search design, admissibility reasoning, reported measurements, optimization reasoning, RV32I assembly, and report analysis for the student. Disclosure does not establish compliance with that independent-work requirement. This draft records the assistance actually received.
 
