@@ -1,8 +1,8 @@
 # minirubik
 
-An optimal C99 solver for the 2×2×2 Rubik’s Cube. It builds a breadth-first
-table for all 3,674,160 states and solves every valid position in at most 11
-half-turn-metric moves.
+An optimal C99 solver for the 2×2×2 Rubik’s Cube. The production C solver uses small transition and distance tables with
+nonrecursive IDA* and returns a shortest solution in at most 11 half-turn-metric
+moves. The complete BFS table is built only by the host verification program.
 
 ## Why a cube is a graph
 
@@ -17,7 +17,8 @@ their order matters—`R U` is generally not `U R`.
 Human solvers use those facts to move a few pieces while restoring the rest;
 the commutator `A B A⁻¹ B⁻¹` is the standard example. This program uses the
 same group structure differently: it treats every valid arrangement as a node,
-every face turn as an edge, and searches the entire graph once. It does not use
+every face turn as an edge, and searches the graph. The verifier builds the complete BFS reference; the
+production solver searches only as needed for its input. It does not use
 the article’s 3×3 Roux stages or a library of memorized algorithms.
 
 The solver gives the eight corner positions the numbers `0–7`. The 2.5D
@@ -28,25 +29,58 @@ walkthrough below shows where those numbers are on the physical cube.
 1. Fix one corner to remove whole-cube rotations.
 2. Rank the remaining corner permutation and six independent orientations into
    a dense integer.
-3. Breadth-first search outward from solved using `R`, `B`, and `D`, including
-   inverse and half turns.
-4. Store one move toward solved for every state; following those moves gives an
-   optimal solution of at most 11 moves.
+3. Build separate permutation/orientation transition and HTM distance tables.
+4. Use IDA* with `max(perm_dist[p], orient_dist[o])` as an admissible bound.
+5. Increase the bound until a solution is found; validate against exact BFS in
+   the separate host verification executable.
 
 ## Build and run
 
 ```sh
 make
-make check
-make prove   # optional: Frama-C WP proof, needs frama-c and alt-ergo
 ./solver 21345671111111
+./verify --self-test       # H1–H4; H3 takes minutes
+make check-quick          # solution vectors, invalid input, output errors
+make check                # quick checks plus exhaustive H1–H4
+make prove                # optional inherited Frama-C target; not rerun here
 ```
 
-`make` builds two binaries. `solver` is the documented one, with contracts, a
-`--self-test` mode, and diagnostics on stderr. `mini` is a golfed variant that
-solves the same input and prints the same line, kept as a readability contrast;
-it has no `--self-test` and prints nothing on failure, and it trades roughly
-eight times the runtime and three times the memory for its brevity.
+`make` builds `solver`, `verify`, and the original `mini` variant.
+
+- `solver.c` / `solver.h`: cube model, small tables, input parsing, IDA*.
+- `solver_main.c`: normal solver entry point.
+- `verify.c`: full BFS oracle, H1–H4, exporters, and vector validation.
+- `mini.c`: original compact complete-BFS solver, retained unchanged.
+
+On Windows PowerShell without GNU Make:
+
+```powershell
+gcc -std=c99 -O2 -Wall -Wextra solver.c solver_main.c -o solver.exe
+gcc -std=c99 -O2 -Wall -Wextra solver.c verify.c -o verify.exe
+.\solver.exe 21345671111111
+.\verify.exe --self-test
+```
+
+Verification/export options have moved from `solver` to `verify`:
+`--verify-h1`, `--verify-h2`, `--verify-h3`, `--verify-h4`, `--self-test`,
+`--export-depth11`, `--export-transition-tables`, `--export-distance-tables`.
+Run `./verify --check-vectors` from the repository root for the existing vector
+file. IDA* vectors are checked by length and replay; multiple shortest paths are
+valid. `mini` retains its original byte-exact vector check.
+
+Individual gates are available as `make check-h1` through `make check-h4`.
+The optional proof target is retained, but prior proof counts and coverage
+measurements do not automatically apply to this refactor.
+
+The RV32I assembly, renderer scripts, target test evidence, and report images
+are retained. This host refactor does not change them. The original timing and
+memory comparison of `mini` against the old BFS solver is historical, not a
+measurement against the new IDA* executable.
+
+See [TEST-RESULTS.md](TEST-RESULTS.md) for environments and the latest host run
+(H3: 620.810 seconds). See [report-reviewed.md](report-reviewed.md) for the
+assignment implementation and target evidence; [report.md](report.md) remains
+the original baseline description.
 
 The 14-digit argument describes the scramble and the printed line is the
 solution. Both formats are explained below.
@@ -194,7 +228,7 @@ being twisted. For a valid cube, convert orientation digits to `0`, `1`, and
 
 ```sh
 $ ./solver 21345671111111
-B' R' D2 R' B R B' R D2 B R'
+R B' D2 R' B R' B' R D2 R B
 ```
 
 Each token is one face turn. Apply them left to right; after the last one the
@@ -224,3 +258,4 @@ empty line.
 
 See [`report.md`](report.md) for the model, algorithm, diagrams, and Frama-C
 validation notes.
+

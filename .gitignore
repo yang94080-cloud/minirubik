@@ -3,3 +3,8 @@
 *.swp
 solver
 mini
+verify
+solver.exe
+verify.exe
+mini.exe
+*.o

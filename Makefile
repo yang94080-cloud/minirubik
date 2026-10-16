@@ -1,5 +1,5 @@
 CC ?= cc
-CFLAGS ?= -O3 -std=c99 -Wall -Wextra -Wpedantic
+CFLAGS ?= -O2 -std=c99 -Wall -Wextra
 FRAMA_C ?= frama-c
 CLANG_FORMAT := $(shell command -v clang-format-20 2>/dev/null || \
 	command -v clang-format 2>/dev/null)
@@ -12,25 +12,31 @@ VECTORS := tests/solutions.txt
 INVALID_STATES := 1234567111111 123456711111111 02345671111111 82345671111111 \
 	12345671111110 12345671111114 1234567111111a 11345671111111 12345671111112
 
-.PHONY: all check prove clean indent
+.PHONY: all check check-quick check-h1 check-h2 check-h3 check-h4 prove clean indent
 
-all: solver mini
+all: solver verify mini
 
-solver: solver.c
-	$(CC) $(CFLAGS) $< -o $@
+solver: solver.c solver_main.c solver.h
+	$(CC) $(CFLAGS) solver.c solver_main.c -o $@
+
+verify: solver.c verify.c solver.h
+	$(CC) $(CFLAGS) solver.c verify.c -o $@
 
 mini: mini.c
 	$(CC) $(CFLAGS) $< -o $@
 
-check: solver mini $(VECTORS)
-	./solver --self-test
+check: check-quick
+	./verify --self-test
+
+check-quick: solver verify mini $(VECTORS)
+	./verify --check-vectors
 	@expected=$$(mktemp); actual=$$(mktemp); \
 		trap 'rm -f "$$expected" "$$actual"' 0 1 2 15; \
 		count=0; \
 		while IFS='|' read -r state solution; do \
 			case "$$state" in ""|\#*) continue ;; esac; \
 			printf '%s\n' "$$solution" >"$$expected"; \
-			for binary in ./solver ./mini; do \
+			for binary in ./mini; do \
 				$$binary "$$state" >"$$actual"; \
 				status=$$?; \
 				test $$status -eq 0 || { \
@@ -44,7 +50,7 @@ $$(wc -c <"$$actual") produced)"; exit 1; }; \
 			done; \
 			count=$$((count + 1)); \
 		done <$(VECTORS); \
-		echo "$$count solution vectors matched by solver and mini"
+		echo "$$count baseline solution vectors matched by mini; IDA* vectors checked by length and replay"
 	@for binary in ./solver ./mini; do \
 		for bad in $(INVALID_STATES); do \
 			$$binary "$$bad" >/dev/null 2>&1; \
@@ -68,14 +74,14 @@ $$(wc -c <"$$actual") produced)"; exit 1; }; \
 			echo "$$binary with stdout closed: expected status 1, got $$status"; \
 			exit 1; }; \
 	done
-	@./solver --self-test >&- 2>/dev/null; \
+	@./verify --verify-h4 >&- 2>/dev/null; \
 		status=$$?; \
 		test $$status -eq 1 || { \
-			echo "solver --self-test with stdout closed: expected 1, got $$status"; \
+			echo "verify --verify-h4 with stdout closed: expected 1, got $$status"; \
 			exit 1; }
 	@echo "invalid input rejected with status 2, unwritable stdout with status 1"
 
-prove: solver.c
+prove: solver.c solver.h
 	@log=$$(mktemp); trap 'rm -f "$$log"' 0 1 2 15; \
 		$(FRAMA_C) -wp -wp-fct quarter_turn,rank_state,valid,parse_state \
 		-wp-rte -rte-verbose 0 -wp-prover alt-ergo -wp-timeout 20 \
@@ -93,5 +99,9 @@ endif
 		{ echo "error: clang-format version 20 required"; exit 1; }
 	$(CLANG_FORMAT) -i $(C_SOURCES)
 
+check-h1 check-h2 check-h3 check-h4: verify
+	./verify --verify-$(patsubst check-%,%,$@)
+
 clean:
-	$(RM) solver mini
+	$(RM) solver mini verify solver.exe mini.exe verify.exe
+
