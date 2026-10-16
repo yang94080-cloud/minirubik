@@ -43,7 +43,6 @@ Development continued on a second computer. The machine used for each measuremen
 | Native compiler | MinGW.org GCC 6.3.0 |
 | Native compiler target |  Windows x86-64 |
 
-**TODO:** Confirm which environment produced the Stage 1 memory and throughput results, the native C verification, and the final target tests. The later pipeline, GCC-comparison, and final-audit runs were performed after changing computers. Do not assign all results to one machine without checking the records.
 
 | Tool or setting | Value |
 |---|---|
