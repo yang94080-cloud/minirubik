@@ -35,13 +35,13 @@ The environment is recorded below in the same format as the HackMD note. The use
 
 Development continued on a second computer. The machine used for each measurement must be identified explicitly.
 
-| Item | Earlier declared environment | Environment in the uploaded report |
-|---|---|---|
-| Operating system | Windows 11 | Windows 11 |
-| Processor | Intel Core i9-14900K | AMD Ryzen 7 7700, 8 cores |
-| Installed memory | 64 GiB | **TODO: confirm capacity/unit; the draft says 32 MiB** |
-| Native compiler | GCC 16.2.0 | MinGW.org GCC 6.3.0 |
-| Native compiler target | Previously recorded as Windows x86-64 | **TODO: copy the output of `gcc -dumpmachine`** |
+| Item  | Environment in the uploaded report |
+|---|---|
+| Operating system | Windows 11 |
+| Processor | AMD Ryzen 7 7700, 8 cores |
+| Installed memory | 32 GiB | 
+| Native compiler | MinGW.org GCC 6.3.0 |
+| Native compiler target |  Windows x86-64 |
 
 **TODO:** Confirm which environment produced the Stage 1 memory and throughput results, the native C verification, and the final target tests. The later pipeline, GCC-comparison, and final-audit runs were performed after changing computers. Do not assign all results to one machine without checking the records.
 
