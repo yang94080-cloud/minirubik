@@ -591,6 +591,31 @@ The Windows measurement outputs reported here were supplied from my local runs. 
 
 The assignment explicitly reserves representation/search design, admissibility reasoning, reported measurements, optimization reasoning, RV32I assembly, and report analysis for the student. Disclosure does not establish compliance with that independent-work requirement. This draft records the assistance actually received.
 
+### Host C Refactoring and Verification
+
+The host C program was split into separate solver and verification components:
+
+- `solver.c` and `solver.h`: cube model, small tables, input parsing, and IDA* search.
+- `solver_main.c`: command-line solver.
+- `verify.c`: BFS reference, correctness checks, and table exporters.
+
+The refactored program passed H1–H4. H3 checked all 3,674,160 states, with zero solution-length failures and zero replay failures.
+
+- H3 wall-clock verification time: **620.810 seconds**
+- H4: **5,769 entries checked; zero failures**
+
+The later repository integration passed compilation and quick regression checks. The search core was unchanged, and exhaustive H3 was not repeated for that integration.
+
+This refactoring applies to the host C program. The RV32I assembly and its recorded target measurements remain unchanged.
+
+### Source Revision
+
+- Refactor commit: [`8a0ae31`](https://github.com/yang94080-cloud/minirubik/commit/8a0ae3132c0c37a6d0c9f6b3f200c9f6379842df)
+- [Solver core](https://github.com/yang94080-cloud/minirubik/blob/8a0ae3132c0c37a6d0c9f6b3f200c9f6379842df/solver.c)
+- [Host verification](https://github.com/yang94080-cloud/minirubik/blob/8a0ae3132c0c37a6d0c9f6b3f200c9f6379842df/verify.c)
+- [Verification records](https://github.com/yang94080-cloud/minirubik/blob/8a0ae3132c0c37a6d0c9f6b3f200c9f6379842df/TEST-RESULTS.md)
+
+This commit integrates the host C refactor. The previously recorded RV32I measurements belong to the assembly version tested in those runs.
 
 ## References
 
